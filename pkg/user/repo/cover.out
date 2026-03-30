@@ -1,0 +1,14 @@
+mode: set
+redditclone/pkg/user/repo/repo_user_pg.go:13.40,15.2 1 0
+redditclone/pkg/user/repo/repo_user_pg.go:17.73,21.16 4 1
+redditclone/pkg/user/repo/repo_user_pg.go:21.16,22.27 1 0
+redditclone/pkg/user/repo/repo_user_pg.go:22.27,24.4 1 0
+redditclone/pkg/user/repo/repo_user_pg.go:25.3,25.18 1 0
+redditclone/pkg/user/repo/repo_user_pg.go:28.2,29.39 2 1
+redditclone/pkg/user/repo/repo_user_pg.go:29.39,31.3 1 1
+redditclone/pkg/user/repo/repo_user_pg.go:33.2,33.15 1 0
+redditclone/pkg/user/repo/repo_user_pg.go:36.63,40.16 3 1
+redditclone/pkg/user/repo/repo_user_pg.go:40.16,41.27 1 1
+redditclone/pkg/user/repo/repo_user_pg.go:41.27,43.4 1 1
+redditclone/pkg/user/repo/repo_user_pg.go:43.9,45.4 1 1
+redditclone/pkg/user/repo/repo_user_pg.go:47.2,47.20 1 1

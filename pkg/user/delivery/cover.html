@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>delivery: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">redditclone/pkg/user/delivery/httpUser.go (96.3%)</option>
+				
+				<option value="file1">redditclone/pkg/user/delivery/httpUser_mock.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package delivery
+
+import (
+        "net/http"
+        "redditclone/pkg/hash"
+        "redditclone/pkg/helpers"
+        "redditclone/pkg/session"
+        "redditclone/pkg/user"
+
+        "go.uber.org/zap"
+)
+
+type UserRepoInterface interface {
+        CheckUser(string, string) (*user.User, error)
+        Create(string, string) (int, error)
+}
+
+type SessManagerInterface interface {
+        CreateSess(*session.Session) (*session.SessionToken, error)
+}
+
+type UserHandler struct {
+        UserRepo UserRepoInterface
+        Logger   *zap.Logger
+        Session  SessManagerInterface
+}
+
+type AuthForm struct {
+        Login    string `json:"username" valid:"required,length(1|32)"`
+        Password string `json:"password" valid:"required,length(8|72)"`
+}
+
+func (uh *UserHandler) SignUp(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        u := &amp;AuthForm{}
+        err := helpers.UnmarshalAndValidate(r, u)
+        if err != nil </span><span class="cov8" title="1">{
+                uh.Logger.Error("request err", zap.Error(err))
+                http.Error(w, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">password, err := hash.HashPass(u.Password)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userId, errDb := uh.UserRepo.Create(password, u.Login)
+        if errDb != nil </span><span class="cov8" title="1">{
+                uh.Logger.Error("Create user error:", zap.Error(errDb))
+                switch errDb </span>{
+                case user.ErrUserExist:<span class="cov8" title="1">
+                        uh.Logger.Error("user exist:", zap.Error(errDb))
+                        http.Error(w, "login alredy exist", http.StatusConflict)
+                        return</span>
+                default:<span class="cov8" title="1">
+                        uh.Logger.Error("db err in create user:", zap.Error(errDb))
+                        http.Error(w, errDb.Error(), http.StatusInternalServerError)
+                        return</span>
+                }
+        }
+        <span class="cov8" title="1">token, err := uh.Session.CreateSess(&amp;session.Session{UserID: userId, Login: u.Login})
+        if err != nil </span><span class="cov8" title="1">{
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov8" title="1">res := &amp;map[string]string{
+                "token": token.Token,
+        }
+        helpers.WriteJson(w, r, http.StatusCreated, res)
+        uh.Logger.Info("Created token for : ", zap.Int("User ID", userId))</span>
+}
+
+func (uh *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        u := &amp;AuthForm{}
+        err := helpers.UnmarshalAndValidate(r, u)
+        if err != nil </span><span class="cov8" title="1">{
+                uh.Logger.Error("request err", zap.Error(err))
+                http.Error(w, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">findedUser, err := uh.UserRepo.CheckUser(u.Login, u.Password)
+        if err != nil </span><span class="cov8" title="1">{
+                uh.Logger.Error("Login error:", zap.Error(err))
+                switch err </span>{
+                case user.ErrUserNotFound:<span class="cov8" title="1">
+                        uh.Logger.Error("no user", zap.Error(err))
+                        http.Error(w, "user by this login doesnt exist", http.StatusNotFound)
+                        return</span>
+                case user.ErrBadPass:<span class="cov8" title="1">
+                        uh.Logger.Error("bad password", zap.Error(err))
+                        http.Error(w, "invalid password", http.StatusUnauthorized)
+                        return</span>
+                default:<span class="cov8" title="1">
+                        uh.Logger.Error("DB err:", zap.Error(err))
+                        http.Error(w, "internal error", http.StatusInternalServerError)
+                        return</span>
+                }
+        }
+
+        <span class="cov8" title="1">token, err := uh.Session.CreateSess(&amp;session.Session{UserID: findedUser.ID, Login: findedUser.Login})
+        if err != nil </span><span class="cov8" title="1">{
+                uh.Logger.Error("jwt err:", zap.Error(err))
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">res := &amp;map[string]string{
+                "token": token.Token,
+        }
+
+        helpers.WriteJson(w, r, http.StatusOK, res)
+        uh.Logger.Info("logged user by: ", zap.Int("ID", findedUser.ID))</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: httpUser.go
+//
+// Generated by this command:
+//
+//        mockgen -source=httpUser.go -destination=httpUser_mock.go -package=delivery UserRepoInterface
+//
+
+// Package delivery is a generated GoMock package.
+package delivery
+
+import (
+        session "redditclone/pkg/session"
+        user "redditclone/pkg/user"
+        reflect "reflect"
+
+        gomock "go.uber.org/mock/gomock"
+)
+
+// MockUserRepoInterface is a mock of UserRepoInterface interface.
+type MockUserRepoInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockUserRepoInterfaceMockRecorder
+        isgomock struct{}
+}
+
+// MockUserRepoInterfaceMockRecorder is the mock recorder for MockUserRepoInterface.
+type MockUserRepoInterfaceMockRecorder struct {
+        mock *MockUserRepoInterface
+}
+
+// NewMockUserRepoInterface creates a new mock instance.
+func NewMockUserRepoInterface(ctrl *gomock.Controller) *MockUserRepoInterface <span class="cov8" title="1">{
+        mock := &amp;MockUserRepoInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockUserRepoInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserRepoInterface) EXPECT() *MockUserRepoInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CheckUser mocks base method.
+func (m *MockUserRepoInterface) CheckUser(arg0, arg1 string) (*user.User, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CheckUser", arg0, arg1)
+        ret0, _ := ret[0].(*user.User)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CheckUser indicates an expected call of CheckUser.
+func (mr *MockUserRepoInterfaceMockRecorder) CheckUser(arg0, arg1 any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUser", reflect.TypeOf((*MockUserRepoInterface)(nil).CheckUser), arg0, arg1)
+}</span>
+
+// Create mocks base method.
+func (m *MockUserRepoInterface) Create(arg0, arg1 string) (int, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Create", arg0, arg1)
+        ret0, _ := ret[0].(int)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// Create indicates an expected call of Create.
+func (mr *MockUserRepoInterfaceMockRecorder) Create(arg0, arg1 any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepoInterface)(nil).Create), arg0, arg1)
+}</span>
+
+// MockSessManagerInterface is a mock of SessManagerInterface interface.
+type MockSessManagerInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockSessManagerInterfaceMockRecorder
+        isgomock struct{}
+}
+
+// MockSessManagerInterfaceMockRecorder is the mock recorder for MockSessManagerInterface.
+type MockSessManagerInterfaceMockRecorder struct {
+        mock *MockSessManagerInterface
+}
+
+// NewMockSessManagerInterface creates a new mock instance.
+func NewMockSessManagerInterface(ctrl *gomock.Controller) *MockSessManagerInterface <span class="cov8" title="1">{
+        mock := &amp;MockSessManagerInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockSessManagerInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSessManagerInterface) EXPECT() *MockSessManagerInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CreateSess mocks base method.
+func (m *MockSessManagerInterface) CreateSess(arg0 *session.Session) (*session.SessionToken, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateSess", arg0)
+        ret0, _ := ret[0].(*session.SessionToken)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CreateSess indicates an expected call of CreateSess.
+func (mr *MockSessManagerInterfaceMockRecorder) CreateSess(arg0 any) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSess", reflect.TypeOf((*MockSessManagerInterface)(nil).CreateSess), arg0)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
